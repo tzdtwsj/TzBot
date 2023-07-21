@@ -4,7 +4,8 @@
 TzBot是一个基于PHP的QQ机器人框架，对接go-cqhttp，支持插件加载  
 ## 运行时环境  
 需要以下php扩展：parallel，Phar，json，mbstring，sockets  
-可选扩展：readline  
+可选扩展：readline 
+
 ---
 ## 安装TzBot
 ### 方式一
@@ -16,6 +17,7 @@ php main.php
 ```
 ### 方式二
 从releases下载最新的phar文件，下载到一个新建的目录，运行php phar文件即可运行  
+
 ---
 ## 配置go-cqhttp
 请前往[go-cqhttp的Releases](https://github.com/Mrs4s/go-cqhttp/releases)进行下载go-cqhttp，然后启动go-cqhttp，选择正向WebSocket，生成config.yml后编辑此文件，填写登录信息，其他无需改动  
@@ -31,7 +33,7 @@ php main.php
         123456
     ],
     "enable-core" : true,//启用核心（非常重要，不建议关闭）
-    "enable-cmd": true //启用控制台，在systemd监管进程可以关闭此选项
+    "enable-cmd": true //启用控制台，在systemd运行此bot需要关闭此选项
 }
 ```
 强烈建议启用访问密钥，可以保证安全  
