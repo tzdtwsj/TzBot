@@ -1,4 +1,5 @@
 <?php
+use tzdtwsj\TzBot;
 function load_plugin($plugin){
 	$num = count($GLOBALS['loaded_plugins']);
 	$GLOBALS['current_plugin'] = $num;
@@ -29,7 +30,7 @@ function load_plugin($plugin){
 function run_on_time(array $time,callable $func){
 	$time = array_merge(array("s"=>0,"m"=>0,"h"=>0),$time);
 	if($time['s']>60||$time['m']>60||$time['h']>24){
-		throw new Exception("时间范围不正确 at run_on_time()");
+		throw new Exception("定时运行：时间范围不正确");
 	}
 	$num = $GLOBALS['current_plugin'];
 	if(!isset($GLOBALS['loaded_plugins'][$num]['event']['run_on_time'])){
@@ -46,7 +47,7 @@ function run_on_time(array $time,callable $func){
  * 0：所有人可执行
  * 5：群管(群主&群管理)
 */
-function regcmd(string $command,string $usage,callable $func,bool $can_get_for_help=true,int $permission=0,bool $group=true,bool $private=true){
+function regcmd(string $command,string $usage,callable $func,bool $can_get_for_help=true,int $permission=0,bool $must_at=false,bool $group=true,bool $private=true){
 	$num = $GLOBALS['current_plugin'];
 	if($group==false&&$private==false){
 		throw new Exception("命令".trim($command)."无法注册：因为没有可用方式执行此命令");
@@ -63,12 +64,13 @@ function regcmd(string $command,string $usage,callable $func,bool $can_get_for_h
 	}
 	$GLOBALS['loaded_plugins'][$num]['event']['command'] = array_merge($GLOBALS['loaded_plugins'][$num]['event']['command'],array(array(
 		"cmd" => trim($command),
-		"usgae" => $usage,
+		"usage" => $usage,
 		"group" => $group,
 		"private" => $private,
 		"func" => $func,
 		"can_get_for_help" => $can_get_for_help,
 		"permission" => $permission,
+		"must_at" => $must_at,
 	)));
 	echo get_log_prefix("info").' 插件'.$GLOBALS['loaded_plugins'][$num]['name'].'注册命令：'.trim($command).PHP_EOL;
 	return true;
@@ -96,7 +98,7 @@ function send_private_msg($user_id,string $message,bool $all_is_string=false){
 	echo get_log_prefix("info")." ".$pre."成功".PHP_EOL;
 	return true;
 }
-function send_group_msg($group_id,$message,bool $all_is_string=true){
+function send_group_msg(int $group_id,string $message,bool $all_is_string=true){
 	if(!is_numeric($group_id)){
 		throw new Exception("group_id必须是数字");
 		return false;
@@ -136,19 +138,20 @@ function get_all_groups(){
 	}
 	return $response['data'];
 }
-function regplugin(string $name,string $description,array $version=array(1,0,0),array $order_description=array()): void{
+function regplugin(string $name,string $description,array $version=array(1,0,0),array $order_description=array()): bool{
 	$num = $GLOBALS['current_plugin'];
 	$GLOBALS['loaded_plugins'][$num]['name'] = $name;
 	$GLOBALS['loaded_plugins'][$num]['description'] = $description;
 	$GLOBALS['loaded_plugins'][$num]['version'] = $version;
 	$GLOBALS['loaded_plugins'][$num]['order_description'] = $order_description;
+	return true;
 }
 function send_msg(array $param,string $msg,bool $auto_at=false,bool $all_is_string=false){
 	if(!(isset($param['message_type'])&&isset($param['user_id']))){
 		throw new Exception("send_msg()传值不完整");
 		return false;
 	}
-	if($all_is_string==false&&$auto_at=true&&$param['message_type']=="group"){
+	if($all_is_string==false&&$auto_at==true&&$param['message_type']=="group"){
 		$msg = "[CQ:at,qq={$param['user_id']}] ".$msg;
 	}
 	if($param['message_type']=="group"){
@@ -205,8 +208,9 @@ function get_log_prefix(string $level): string{
 	);
 	return "\033[32m[\033[33m".date("Y-m-d H:i:s")."\033[32m]\033[0m ".$log_level[$level].mb_strtoupper($level)."\033[0m";
 }
-function require_depend(string $file): void{
+function require_depend(string $file): bool{
 	$GLOBALS['require_depends'][count($GLOBALS['require_depends'])] = $file;
+	return true;
 }
 function input($prompt=""){
 	if(extension_loaded("readline")){
@@ -283,7 +287,7 @@ function load_param(string $str){
 	}
 	return $param2;
 }
-function regccmd(string $cmd,string $description,string $usage,callable $func):void{
+function regccmd(string $cmd,string $description,string $usage,callable $func){
 	foreach($GLOBALS['loaded_plugins'][$GLOBALS['current_plugin']]['event']['console_command'] as $i){
 		if(trim($cmd)==$i['cmd']){
 			throw new Exception("控制台命令\"{$cmd}\"尝试重复注册");
@@ -299,5 +303,6 @@ function regccmd(string $cmd,string $description,string $usage,callable $func):v
 		"usage" => $usage,
 		"func" => $func,
 	);
+	return true;
 }
 ?>

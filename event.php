@@ -1,4 +1,5 @@
 <?php
+use tzdtwsj\TzBot;
 $sock = socket_create(AF_INET,SOCK_STREAM,SOL_TCP);
 if($config['access-token']!=""){
 	$option = array(
@@ -58,6 +59,7 @@ $get_event = function($global,$config,$option){
 		$current_command = null;//命令在数组的上标
 		$response = $event->receive();//服务器的上报
 		$decode_response = json_decode($response,true);//已经解析完毕的服务器上报
+		$have_at = false;
 		if($decode_response==false){
 			echo get_log_prefix("error")." 无效数据-无法解析JSON：".json_last_error_msg().PHP_EOL;
 			exit(1);
@@ -65,7 +67,10 @@ $get_event = function($global,$config,$option){
 		if($decode_response['post_type']=="message"){//如果上报数据是消息
 			$msg = $decode_response['raw_message'];//获取消息
 			//preg_match_all("/\[CQ:.*?\]/",$decode_response['raw_message'],$result);
-			$msg = preg_replace("/^\[CQ:at,qq={$global['mydata']['data']['user_id']}\]/","",trim($msg));//将开头@机器人的部分删去
+			if(stripos(trim($msg),"[CQ:at,qq={$global['mydata']['user_id']}]")===0){
+				$have_at = true;
+			}
+			$msg = preg_replace("/^\[CQ:at,qq={$global['mydata']['user_id']}\]/","",trim($msg));//将开头@机器人的部分删去
 			$msg = trim($msg);//删去开头后结尾的空格
 			$pos = -1;
 			for($i=0;$i<count($global['loaded_plugins']);$i=$i+1){//遍历插件
@@ -97,8 +102,13 @@ $get_event = function($global,$config,$option){
 				}else{//如果message_type是其他值
 					continue;
 				}
+				if(($decode_response['message_type']=="group"&&$global['loaded_plugins'][$current_plugin]['event']['command'][$current_command]['must_at'])&&$have_at==false){//如果插件必须要at才触发并且没有at
+					continue;
+				}
 				$param = array(//函数要传的参数，会在调用$run_func时传入此变量
+					"mydata" => $global['mydata'],//QQ的登录数据
 					"msg" => $msg,//上面解析的消息
+					"message_id" => $decode_response['message_id'],
 					"raw_message" => $decode_response['raw_message'],//原消息/string/CQ码形式
 					"message_type" => $decode_response['message_type'],//消息类型：private(私聊)/group(群聊)
 					"sub_type" => $decode_response['sub_type'],//子消息类型：friend(好友)/normal(群聊)/anonymous(匿名)/group_self(群中自身发送)/group(群临时会话)/notice(系统提示)，参考https://docs.go-cqhttp.org/reference/data_struct.html#post-message-subtype
@@ -260,7 +270,7 @@ if($mydata==false){
 	echo get_log_prefix("error")." 连接服务器失败：".$e->getMessage().PHP_EOL;
 	exit(1);
 }
-$global['mydata'] = $mydata;
+$global['mydata'] = $mydata['data'];
 $future1 = $thread1->run($get_event,array($global,$config,$option));
 $future2 = $thread2->run($get_time,array($global,$config,$option));
 $future3 = $thread3->run($cmd,array($global,$config,$option));

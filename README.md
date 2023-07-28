@@ -56,3 +56,5 @@ default-middlewares: &default
     frequency: 1  # 令牌回复频率, 单位秒
     bucket: 1     # 令牌桶大小
 ```
+## 开发适用于TzBot的插件
+前往[开发文档](http://tzdtwsj.github.io/TzBot-docs)获取开发帮助

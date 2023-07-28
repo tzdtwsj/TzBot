@@ -3,7 +3,7 @@
  * PHP Bot - 机器人
  * By tzdtwsj
  * 连接使用go-cqhttp
- * go-cqhttp连接方式为http
+ * go-cqhttp连接方式为ws
  * 
  * 
  */
